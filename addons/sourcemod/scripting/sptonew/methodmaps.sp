@@ -13,6 +13,8 @@ methodmap Util
 		for(int i = 0; i < lentocopy; i++)
 			dest[i] = source[i];
 		
+		dest[lentocopy] = '\0';
+		
 		return lentocopy;
 	}
 	
@@ -513,6 +515,7 @@ methodmap Util
 	}
 }
 
+//TODO: Should probably rename it to Lexer?
 methodmap Parser
 {
 	public static bool LexNumber(full_token_t tok, cell& lexvalue)
@@ -578,7 +581,7 @@ methodmap Parser
 			
 			c = Util.litchar(lptr, flags);
 			
-			val |= (c << view_as<cell>(8*i));
+			val |= (c << view_as<cell>(8 * i));
 			g_iglbstringread++;
 			
 			if (i == 4 - (sCHARBITS / 8)) //sizeof(ucell) (ucell : uint32_t : unsigned long int : 4 bytes)
@@ -727,8 +730,9 @@ methodmap Parser
 		if (sc_packstr)
 			stringflags ^= ISPACKED;
 		
-		//HACK: Can't pass it normally, array must be indexed error.
+		//HACK: Can't pass it normally, array sizes do not match, or destination array is too small.
 		char_t tempstr;
+		//tempstr = tok.str; //Can't assign it like that: array must be indexed error.
 		tempstr.buff = tok.str.buff;
 		tempstr.pos = tok.str.pos;
 		
@@ -741,71 +745,90 @@ methodmap Parser
 		tok.str.pos = tempstr.pos;
 	}
 	
+	public static int LexKeywordImpl(char_t match, int length)
+	{
+		int val;
+		char buff[sNAMEMAX];
+		
+		Util.strncopy(buff, sizeof(buff), match.buff[match.pos], length);
+		g_sKeywords.GetValue(buff, val);
+		
+		return val;
+	}
+	
+	public static bool IsUnimplementedKeyword(int token)
+	{
+		switch (token)
+		{
+			case tACQUIRE, tAS, tCATCH, tCAST_TO, tDOUBLE, tEXPLICIT, tFINALLY, 
+			tFOREACH, tIMPLICIT, tIMPORT, tIN, tINT8, tINT16, tINT32, tINT64, 
+			tINTERFACE, tINTN, tLET, tNAMESPACE, tPACKAGE, tPRIVATE, tPROTECTED, 
+			tREADONLY, tSEALED, tTHROW, tTRY, tTYPEOF, tUINT8, tUINT16, tUINT32, 
+			tUINT64, tUINTN, tUNION, tVAR, tVARIANT, tVIRTUAL, tVOLATILE, tWITH:
+			{
+				return true;
+			}
+			
+			default:
+			{
+				return false;
+			}
+		}
+	}
+	
+	public static void GetTokenString(int tok_id, char[] token, int length)
+	{
+		strcopy(token, length, sc_tokens[tok_id - tFIRST]);
+	}
+	
 	public static bool LexKeyword(full_token_t tok, char_t token_start)
 	{
-		#if 0 //TODO: (pure c++)
-		int tok_id = lex_keyword_impl(token_start, tok->len);
+		int tok_id = Parser.LexKeywordImpl(token_start, tok.len);
 		if (!tok_id)
 			return false;
-	
-		if (IsUnimplementedKeyword(tok_id)) {
-			// Try to gracefully error.
-			error(173, get_token_string(tok_id));
-			tok->id = tSYMBOL;
-			strcpy(tok->str, get_token_string(tok_id));
-			tok->len = strlen(tok->str);
-		} else if (*lptr == ':' && (tok_id == tINT || tok_id == tVOID)) {
-			// Special case 'int:' to its old behavior: an implicit view_as<> cast
-			// with Pawn's awful lowercase coercion semantics.
-			const char *token = get_token_string(tok_id);
-			switch (tok_id) {
-				case tINT:
-					error(238, token, token);
-					break;
-				case tVOID:
-					error(239, token, token);
-					break;
-			}
-			lptr++;
-			tok->id = tLABEL;
-			strcpy(tok->str, token);
-			tok->len = strlen(tok->str);
-		} else {
-			tok->id = tok_id;
-			errorset(sRESET,0); /* reset error flag (clear the "panic mode")*/
+		
+		if (Parser.IsUnimplementedKeyword(tok_id))
+		{
+			tok.id = tSYMBOL;
+			Parser.GetTokenString(tok_id, tok.str.buff, sizeof(char_t::buff));
+			tok.len = strlen(tok.str.buff);
 		}
+		else if (g_sInpLine.buff[g_sInpLine.pos] == ':' && (tok_id == tINT || tok_id == tVOID))
+		{
+			g_sInpLine.pos++;
+			tok.id = tLABEL;
+			Parser.GetTokenString(tok_id, tok.str.buff, sizeof(char_t::buff));
+			tok.len = strlen(tok.str.buff);
+		}
+		else
+			tok.id = tok_id;
+		
 		return true;
-		#endif
 	}
 	
 	public static void LexSymbol(full_token_t tok, char_t token_start)
 	{
-		#if 0 //TODO: (pure c++)
-		ke::SafeStrcpyN(tok->str, sizeof(tok->str), token_start, tok->len);
-		if (tok->len > sNAMEMAX) {
-			static_assert(sNAMEMAX < sizeof(tok->str), "sLINEMAX should be > sNAMEMAX");
-			tok->str[sNAMEMAX] = '\0';
-			tok->len = sNAMEMAX;
-			error(200, tok->str, sNAMEMAX);
+		Util.strncopy(tok.str.buff, sizeof(char_t::buff), token_start.buff[token_start.pos], tok.len);
+		if (tok.len > sNAMEMAX)
+		{
+			tok.str.buff[sNAMEMAX] = '\0';
+			tok.len = sNAMEMAX;
 		}
-	
-		tok->id = tSYMBOL;
-	
-		if (*lptr == ':' && *(lptr + 1) != ':') {
-			if (sc_allowtags) {
-				tok->id = tLABEL;
-				lptr++;
-			} else if (gTypes.find(tok->str)) {
-				// This looks like a tag override (a tag with this name exists), but
-				// tags are not allowed right now, so it is probably an error.
-				error(220);
+		
+		tok.id = tSYMBOL;
+		
+		if (g_sInpLine.buff[g_sInpLine.pos] == ':' && g_sInpLine.buff[g_sInpLine.pos + 1] != ':')
+		{
+			if (sc_allowtags)
+			{
+				tok.id = tLABEL;
+				g_sInpLine.pos++;
 			}
-		} else if (tok->len == 1 && *token_start == '_') {
-			// By itself, '_' is not a symbol but a placeholder. However, '_:' is
-			// a label which is why we handle this after the label check.
-			tok->id = '_';
 		}
-		#endif
+		else if (tok.len == 1 && token_start.buff[token_start.pos] == '_')
+		{
+			tok.id = '_';
+		}
 	}
 	
 	public static bool LexSymbolOrKeyword(full_token_t tok)
@@ -813,7 +836,7 @@ methodmap Parser
 		char_t token_start;
 		token_start = g_sInpLine;
 		char first_char = g_sInpLine.buff[g_sInpLine.pos];
-	
+		
 		bool maybe_keyword = (first_char != PUBLIC_CHAR);
 		
 		char c;
@@ -830,7 +853,7 @@ methodmap Parser
 			else if (!IsCharAlpha(c) && c != '_')
 				break;
 		}
-	
+		
 		tok.len = g_sInpLine.pos - token_start.pos;
 		if (tok.len == 1 && first_char == PUBLIC_CHAR)
 		{
@@ -1422,6 +1445,18 @@ methodmap SPFile < File
 			return;
 		}
 		
+		g_sKeywords = new StringMap();
+		if(ret.Register(g_sKeywords) == -1)
+		{
+			log.Error("Can't init g_sKeywords!");
+			ret.Handle();
+			return;
+		}
+		
+		//int kStart = tMIDDLE + 1;
+		for (int kStart = tMIDDLE + 1, i = kStart; i <= tLAST; i++)
+			g_sKeywords.SetValue(sc_tokens[i - tFIRST], i);
+		
 		g_bisReading = !this.EndOfFile();
 		
 		if(!g_bisReading)
@@ -1452,4 +1487,22 @@ public void PreprocessInLex()
 	g_sTokenBuffer = g_sPreprocessBuffer;
 	g_spFile.Preprocessline();
 	g_sTokenBuffer = g_sNormalBuffer;
+}
+
+public int strncopy2(char[] dest, int destlen, char[] source, int lentocopy)
+{
+	int srclen = strlen(source);
+	
+	if(srclen < lentocopy)
+		lentocopy = srclen;
+	
+	if(destlen < lentocopy)
+		lentocopy = destlen - 1;
+	
+	for(int i = 0; i < lentocopy; i++)
+		dest[i] = source[i];
+	
+	dest[lentocopy] = '\0';
+	
+	return lentocopy;
 }

@@ -1,16 +1,16 @@
 #include "sourcemod"
 #define SNAME "[SPTONEW]"
 
-#pragma dynamic 131072
+#pragma dynamic 262144
 #pragma semicolon 1
 #define DEBUG 0
 
 public Plugin myinfo = 
 {
-	name = "SPTONEW",
+	name = "SpToNew",
 	author = "GAMMA CASE",
 	description = "Updates .sp and .inc files to new sp syntax.",
-	version = "0.0.1",
+	version = "0.0.2",
 	url = "https://steamcommunity.com/id/_GAMMACASE_/"
 }
 
@@ -27,7 +27,8 @@ public void OnPluginStart()
 {
 	RegAdminCmd("sm_sptonew", SM_Sptonew, ADMFLAG_ROOT, "Start converting sp file to new syntax.");
 	
-	g_cvStackTrace = CreateConVar("stn_stacktrace", "0", "Create stack trace for error and debug log messages;", .hasMin = true, .hasMax = true, .max = 1.0);
+	g_cvStackTraceType = CreateConVar("stn_stacktracetype", "0", "Stack trace type: 0 - Last function in stack trace; 1 - Full stack trace;", .hasMin = true, .hasMax = true, .max = 1.0);
+	g_cvStackTrace = CreateConVar("stn_stacktrace", "1", "Create stack trace for error and debug log messages;", .hasMin = true, .hasMax = true, .max = 1.0);
 	g_cvLogLevel = CreateConVar("stn_loglevel", "3", "Log level: 0 - None; 1 - Normal; 2 - Error; 3 - Debug;", .hasMin = true, .hasMax = true, .max = 3.0);
 	g_cvOutputPostfix = CreateConVar("stn_outputpostfix", "_new", "Postfix that will be used as a default for output file;");
 	g_cvLogLevel.AddChangeHook(CVHook_LogLevel);

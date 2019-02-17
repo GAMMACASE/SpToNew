@@ -9,6 +9,12 @@ enum LogLevel
 	LL_Debug
 }
 
+enum StackTraceType
+{
+	STT_OneFunc = 0,
+	STT_Full = 1
+}
+
 stock static LogLevel g_loglevel;
 stock static int g_iclientUserId;
 stock static bool g_bisNewSM;
@@ -74,7 +80,7 @@ methodmap Log
 		fi.Next();
 		fi.Next();
 		
-		if(this.__FIUsage)
+		if(this.__FIUsage && view_as<StackTraceType>(g_cvStackTraceType.IntValue) == STT_Full)
 		{
 			while(fi.Next())
 			{

@@ -283,6 +283,20 @@ enum
 
 enum cell {}; //int32_t : int;
 
+//Simulating *cell;
+/*enum struct cell_t
+{
+	cell val;
+	int pos;
+}*/
+
+//Simulating *char;
+enum struct char_t
+{
+	char buff[sLINEMAX];
+	int pos;
+}
+
 enum struct token_t
 {
 	int id;
@@ -328,32 +342,20 @@ enum struct token_buffer_t
 	ArrayList tokens; //HACK;
 };
 
-//Simulating *cell;
-/*enum struct cell_t
-{
-	cell val;
-	int pos;
-}*/
-
-//Simulating *char;
-enum struct char_t
-{
-	char buff[sLINEMAX];
-	int pos;
-}
-
 token_buffer_t g_sNormalBuffer;
 token_buffer_t g_sPreprocessBuffer;
 token_buffer_t g_sTokenBuffer;
 
 ConVar g_cvLogLevel,
 	g_cvOutputPostfix,
-	g_cvStackTrace;
+	g_cvStackTrace,
+	g_cvStackTraceType;
 
 bool g_bisInProcess,
 	g_bisReading,
 	g_bComment,
-	g_bLexNewline;
+	g_bLexNewline,
+	sc_allowtags = true;		/* allow/detect tagnames in lex() */
 
 char g_sOutputPath[PLATFORM_MAX_PATH];
 
@@ -370,3 +372,5 @@ int g_bStmtIndent,				/* current indent of the statement */
 
 //cell g_litq[sDEF_LITMAX * 4];		// the literal queue (sizeof(cell) : cell : int32_t : int : 4 bytes)
 ArrayList g_litq;					//HACK: Using ArrayList instead normal dynamic array.
+
+StringMap g_sKeywords;

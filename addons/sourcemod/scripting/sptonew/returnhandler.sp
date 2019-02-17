@@ -10,7 +10,7 @@ methodmap Return < ArrayList
 		return (handle == null ? -1 : this.Push(handle));
 	}
 	
-	public any Handle(any ret = 0, any &val1 = INVALID_HANDLE, any val1res = INVALID_HANDLE, any &val2 = INVALID_HANDLE, any val2res = INVALID_HANDLE, any &val3 = INVALID_HANDLE, any val3res = INVALID_HANDLE)
+	public any Handle(any ret = INVALID_HANDLE, any &val1 = INVALID_HANDLE, any val1res = INVALID_HANDLE, any &val2 = INVALID_HANDLE, any val2res = INVALID_HANDLE, any &val3 = INVALID_HANDLE, any val3res = INVALID_HANDLE)
 	{
 		val1 = val1res;
 		val2 = val2res;
